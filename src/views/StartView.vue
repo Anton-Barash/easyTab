@@ -17,6 +17,12 @@
         <button class="btn-secondary action-btn" @click="router.push('/settings')">
           Settings
         </button>
+        <div class="view-toggle-info">
+          <span>Формы:</span>
+          <router-link to="/fill" class="view-link">Лента</router-link>
+          <span>|</span>
+          <router-link to="/fill-card" class="view-link">Карточки</router-link>
+        </div>
       </div>
 
       <div class="instructions card">
@@ -28,33 +34,50 @@
           <li>Export as ZIP with Excel + HTML + media</li>
         </ol>
       </div>
-
-      <input ref="fileInput" type="file" accept=".json" style="display: none" @change="loadExistingReport" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFormStore } from '../stores/formStore'
 
 const router = useRouter()
 const formStore = useFormStore()
 
-const fileInput = ref(null)
+const openExisting = async () => {
+  try {
+    const [fileHandle] = await window.showOpenFilePicker({
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+    })
+    const file = await fileHandle.getFile()
+    console.log('[openExisting] File:', file.name)
 
-const openExisting = () => {
-  fileInput.value?.click()
-}
+    await formStore.loadDraftFromFile(file)
+    console.log('[openExisting] Draft loaded')
 
-const loadExistingReport = async (e) => {
-  if (e.target.files && e.target.files[0]) {
-    try {
-      await formStore.loadDraftFromFile(e.target.files[0])
-      router.push('/fill')
-    } catch (error) {
-      alert('Error: ' + error.message)
+    // Check if we already have a folder handle set
+    if (!formStore.folderHandle) {
+      try {
+        console.log('[openExisting] Requesting folder picker...')
+        const folderHandle = await window.showDirectoryPicker({ mode: 'readwrite' })
+        console.log('[openExisting] Folder handle:', folderHandle)
+        formStore.setFolderHandle(folderHandle)
+        console.log('[openExisting] Loading media...')
+        await formStore.loadMediaFromFolder(folderHandle)
+        console.log('[openExisting] Media loading complete')
+      } catch (e) {
+        console.log('[openExisting] Folder selection cancelled or failed:', e)
+      }
+    } else {
+      console.log('[openExisting] Using existing folder handle')
+      await formStore.loadMediaFromFolder(formStore.folderHandle)
+    }
+
+    router.push('/fill')
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      console.error('[openExisting] Error:', e)
     }
   }
 }
@@ -120,5 +143,31 @@ h1 {
 
 .instructions li {
   margin-bottom: 8px;
+}
+
+.view-toggle-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px;
+  background: #f0f9ff;
+  border-radius: 10px;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #475569;
+}
+
+.view-link {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.view-link:hover {
+  background: #dbeafe;
 }
 </style>

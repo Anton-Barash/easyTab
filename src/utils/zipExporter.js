@@ -17,7 +17,9 @@ export const generateHTMLReport = (questions, answers) => {
     .question-text { font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 15px; }
     .answers-table { border-collapse: collapse; }
     .answers-table td { padding: 6px 8px; border: 1px solid #d0d0d0; vertical-align: middle; font-size: 12px; }
-    .answers-table tr.attention td { border-color: #f59e0b; background-color: #fffbeb; }
+    .answers-table tr.attention .attention-col { border-color: #f59e0b; background-color: #fffbeb; font-weight: 700; }
+    .answers-table tr.attention .answer-text { border-color: #f59e0b; background-color: #fffbeb; }
+    .answers-table tr.attention .media-cell { border-color: #f59e0b; background-color: #fffbeb; }
     .num-col { width: 20px; text-align: center; font-size: 11px; font-weight: 700; color: #64748b; }
     .attention-col { width: 20px; text-align: center; font-size: 12px; font-weight: 700; color: #d97706; }
     .answer-text { font-size: 12px; color: #1e293b; line-height: 1.4; width: 100%; }
@@ -239,7 +241,7 @@ const saveMediaFile = async (folderHandle, mediaFile, number, folderName) => {
   try {
     const subFolderHandle = await folderHandle.getDirectoryHandle(folderName, { create: true });
     const ext = getFileExtension(mediaFile.originalName || mediaFile.name);
-    const fileName = `${String(number).padStart(3, '0')}${ext}`;
+    const fileName = `${String(number).padStart(3, '0')}.${ext}`;
 
     if (mediaFile.base64) {
       const base64Data = mediaFile.base64.split(',')[1];
@@ -248,10 +250,10 @@ const saveMediaFile = async (folderHandle, mediaFile, number, folderName) => {
       for (let i = 0; i < binary.length; i++) {
         bytes[i] = binary.charCodeAt(i);
       }
-
       await saveFileToFolder(subFolderHandle, fileName, bytes);
-    } else if (mediaFile.file) {
-      await saveFileToFolder(subFolderHandle, fileName, mediaFile.file);
+    } else if (mediaFile.url && mediaFile.url.startsWith('blob:')) {
+      // If we have a blob URL, we can't use it for saving directly
+      // Just use the name without saving (file should already be in folder)
     }
 
     return fileName;
@@ -261,57 +263,45 @@ const saveMediaFile = async (folderHandle, mediaFile, number, folderName) => {
   }
 };
 
-export const exportReport = async (questions, answers, fileName = 'report') => {
+export const exportReport = async (questions, answers, fileName = 'report', existingFolderHandle = null) => {
   try {
-    const folderHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    const folderHandle = existingFolderHandle || await window.showDirectoryPicker({ mode: 'readwrite' });
 
     let photoCounter = 1;
     let xCounter = 1;
-    const updatedAnswers = JSON.parse(JSON.stringify(answers));
 
-    for (const [qIndex, questionAnswers] of Object.entries(updatedAnswers)) {
+    for (const [qIndex, questionAnswers] of Object.entries(answers)) {
       if (questionAnswers && questionAnswers.length > 0) {
         for (const ans of questionAnswers) {
           const answerMedia = ans.media || [];
           for (let mIndex = 0; mIndex < answerMedia.length; mIndex++) {
             const folderName = ans.attention ? 'X' : 'photos';
             const counter = ans.attention ? xCounter : photoCounter;
-            const savedName = await saveMediaFile(folderHandle, answerMedia[mIndex], counter, folderName);
+            await saveMediaFile(folderHandle, answerMedia[mIndex], counter, folderName);
 
-            if (savedName) {
-              answerMedia[mIndex].name = savedName;
-              if (ans.attention) {
-                xCounter++;
-              } else {
-                photoCounter++;
-              }
+            if (ans.attention) {
+              xCounter++;
+            } else {
+              photoCounter++;
             }
           }
         }
       }
     }
 
-    const html = generateHTMLReport(questions, updatedAnswers);
+    const html = generateHTMLReport(questions, answers);
     await saveFileToFolder(folderHandle, 'report.html', html);
 
-    const excelData = generateExcelFile(questions, updatedAnswers);
+    const excelData = generateExcelFile(questions, answers);
     await saveFileToFolder(folderHandle, 'report.xlsx', excelData);
 
-    const draft = {
-      reportName: fileName,
-      questions: questions,
-      answers: updatedAnswers,
-      timestamp: Date.now()
-    };
-    await saveFileToFolder(folderHandle, `${fileName}.json`, JSON.stringify(draft, null, 2));
-
     alert('Report exported successfully!');
-    return true;
+    return { folderHandle, mediaCounter: { photos: photoCounter, X: xCounter } };
   } catch (e) {
     if (e.name !== 'AbortError') {
       console.error('Error exporting report:', e);
       alert('Error exporting report. Please try again.');
     }
-    return false;
+    return null;
   }
 };

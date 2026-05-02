@@ -2,55 +2,61 @@
   <div class="question-card card">
     <div class="question-header">
       <span class="question-number">{{ index + 1 }}.</span>
-      <h3 class="question-text">{{ question.text }}</h3>
+      <input
+        type="text"
+        :value="question.text"
+        @input="onQuestionTextChange($event.target.value)"
+        class="question-input"
+        placeholder="Введите текст вопроса..."
+      />
     </div>
     
     <div class="answers-container">
-      <div
-        v-for="(answer, ansIndex) in answers"
-        :key="ansIndex"
-        class="answer-item"
-        :class="{ 'attention-item': answer.attention }"
-      >
-        <div class="answer-row">
-          <textarea
-            v-model="answer.text"
-            @input="onAnswerChange(ansIndex, answer.text)"
-            class="input-field"
-            rows="2"
-            placeholder="Введите ответ..."
-          ></textarea>
-          <div class="answer-controls">
-            <label class="attention-label">
-              <input
-                type="checkbox"
-                v-model="answer.attention"
-                @change="onAttentionChange(ansIndex, answer.attention)"
+        <div
+          v-for="(answer, ansIndex) in answers"
+          :key="ansIndex"
+          class="answer-item"
+          :class="{ 'attention-item': answer.attention }"
+        >
+          <div class="answer-row">
+            <textarea
+              v-model="answer.text"
+              @input="onAnswerChange(ansIndex, answer.text)"
+              class="input-field"
+              rows="2"
+              placeholder="Введите ответ..."
+            ></textarea>
+            <div class="answer-controls">
+              <label class="attention-label">
+                <input
+                  type="checkbox"
+                  v-model="answer.attention"
+                  @change="onAttentionChange(ansIndex, answer.attention)"
+                >
+                !
+              </label>
+              <button
+                v-if="answers.length > 1"
+                class="remove-btn"
+                @click="onRemoveAnswer(ansIndex)"
+                title="Удалить ответ"
               >
-              !
-            </label>
-            <button
-              v-if="answers.length > 1"
-              class="remove-btn"
-              @click="onRemoveAnswer(ansIndex)"
-              title="Удалить ответ"
-            >
-              ×
-            </button>
+                ×
+              </button>
+            </div>
           </div>
+
+          <MediaBlock
+            :media="answer.media"
+            @add-media="(files) => onAddMedia(ansIndex, files)"
+            @remove-media="(mediaIndex) => onRemoveMedia(ansIndex, mediaIndex)"
+          />
         </div>
-        
-        <MediaBlock
-          :media="answer.media"
-          @add-media="(files) => onAddMedia(ansIndex, files)"
-          @remove-media="(mediaIndex) => onRemoveMedia(ansIndex, mediaIndex)"
-        />
+
+        <button class="add-answer-btn" @click="onAddAnswer">
+          + Добавить ответ
+        </button>
       </div>
-      
-      <button class="add-answer-btn" @click="onAddAnswer">
-        + Добавить ответ
-      </button>
-    </div>
   </div>
 </template>
 
@@ -61,12 +67,16 @@ import MediaBlock from './MediaBlock.vue'
 const props = defineProps({
   index: { type: Number, required: true },
   question: { type: Object, required: true },
-  initialAnswers: { type: Array, default: () => [{ text: '', attention: false, media: [] }] }
+  initialAnswers: { type: Array, default: () => [] }
 })
 
-const emit = defineEmits(['update:answers', 'add-answer', 'remove-answer', 'add-media', 'remove-media'])
+const emit = defineEmits(['update:answers', 'add-answer', 'remove-answer', 'add-media', 'remove-media', 'update:question-text'])
 
 const answers = ref([...props.initialAnswers])
+
+const onQuestionTextChange = (text) => {
+  emit('update:question-text', text)
+}
 
 const onAnswerChange = (ansIndex, text) => {
   emit('update:answers', answers.value)
@@ -115,6 +125,22 @@ watch(() => props.initialAnswers, (newVal) => {
   font-size: 20px;
 }
 
+.question-input {
+  flex: 1;
+  font-size: 18px;
+  color: #1e293b;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.question-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
 .question-text {
   font-size: 18px;
   color: #1e293b;
@@ -136,6 +162,15 @@ watch(() => props.initialAnswers, (newVal) => {
 .answer-item.attention-item {
   border-color: #f59e0b;
   background: #fffbeb;
+}
+
+.answer-item.empty-answer {
+  background: #f8fafc;
+  opacity: 0.7;
+}
+
+.answer-item.empty-answer .input-field {
+  cursor: not-allowed;
 }
 
 .answer-row {

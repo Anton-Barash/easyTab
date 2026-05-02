@@ -1,11 +1,7 @@
 <template>
   <div class="media-block">
-    <div class="media-header">
-      <h4>📷 Фото/Видео</h4>
-      <div class="media-buttons">
-        <button class="btn-secondary" @click="capture">Сделать фото</button>
-        <button class="btn-secondary" @click="handleSelectFromGallery">Выбрать из галереи</button>
-      </div>
+    <div class="media-buttons">
+      <button class="btn-secondary" @click="handleAddFiles">📁 Добавить файл</button>
     </div>
 
     <div v-if="media && media.length > 0" class="media-grid">
@@ -19,15 +15,8 @@
           />
           <video v-else :src="item.url" controls />
         </div>
-        <div class="media-info">
-          <span class="media-name">{{ item.name }}</span>
-          <button class="remove-btn" @click="onRemove(index)">✕</button>
-        </div>
+        <button class="remove-btn" @click="confirmRemove(index)">✕</button>
       </div>
-    </div>
-
-    <div v-else class="no-media">
-      <p>Нет прикрепленных файлов</p>
     </div>
 
     <ImageViewer ref="viewerRef" />
@@ -36,7 +25,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { capturePhoto, selectFromGallery } from '../utils/mediaManager'
+import { selectFromGallery } from '../utils/mediaManager'
 import ImageViewer from './ImageViewer.vue'
 
 const props = defineProps({
@@ -50,16 +39,7 @@ const openViewer = (url, name) => {
   viewerRef.value?.open(url, name)
 }
 
-const capture = async () => {
-  try {
-    const file = await capturePhoto()
-    emit('add-media', [file])
-  } catch (error) {
-    console.error('Ошибка при съемке:', error)
-  }
-}
-
-const handleSelectFromGallery = async () => {
+const handleAddFiles = async () => {
   try {
     const files = await selectFromGallery()
     emit('add-media', files)
@@ -68,59 +48,49 @@ const handleSelectFromGallery = async () => {
   }
 }
 
-const onRemove = (index) => {
-  emit('remove-media', index)
+const confirmRemove = (index) => {
+  if (confirm('Вы уверены, что хотите удалить этот файл?')) {
+    emit('remove-media', index)
+  }
 }
 </script>
 
 <style scoped>
 .media-block {
-  border-top: 1px solid #e2e8f0;
-  padding-top: 15px;
-}
-
-.media-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.media-header h4 {
-  color: #475569;
-  font-size: 16px;
+  margin-top: 10px;
 }
 
 .media-buttons {
   display: flex;
-  gap: 10px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .media-buttons button {
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: 6px 12px;
+  font-size: 13px;
 }
 
 .media-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .media-item {
+  position: relative;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
 .media-preview {
-  height: 120px;
+  width: 80px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f1f5f9;
+  background-color: #f8fafc;
 }
 
 .media-preview.clickable {
@@ -128,44 +98,26 @@ const onRemove = (index) => {
 }
 
 .media-preview.clickable:hover {
-  background-color: #e2e8f0;
+  background-color: #f1f5f9;
 }
 
 .media-preview img, .media-preview video {
   max-width: 100%;
   max-height: 100%;
-  object-fit: contain;
-}
-
-.media-info {
-  padding: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.media-name {
-  font-size: 12px;
-  color: #64748b;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
+  object-fit: cover;
 }
 
 .remove-btn {
-  background: none;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(239, 68, 68, 0.9);
   border: none;
-  color: #ef4444;
-  font-size: 18px;
+  color: white;
+  font-size: 14px;
   cursor: pointer;
-  padding: 0;
+  padding: 2px 6px;
+  border-radius: 4px;
   line-height: 1;
-}
-
-.no-media {
-  text-align: center;
-  color: #94a3b8;
-  padding: 20px;
 }
 </style>

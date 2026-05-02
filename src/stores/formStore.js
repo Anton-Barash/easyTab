@@ -1,5 +1,24 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { fileToBase64 } from '../utils/mediaManager'
+
+const saveFileToFolder = async (folderHandle, fileName, content) => {
+  const fileHandle = await folderHandle.getFileHandle(fileName, { create: true })
+  const writable = await fileHandle.createWritable()
+  await writable.write(content)
+  await writable.close()
+}
+
+const readFileFromFolder = async (folderHandle, subFolderName, fileName) => {
+  try {
+    const subFolderHandle = await folderHandle.getDirectoryHandle(subFolderName)
+    const fileHandle = await subFolderHandle.getFileHandle(fileName)
+    return await fileHandle.getFile()
+  } catch (e) {
+    console.error('Error reading file from folder:', e)
+    return null
+  }
+}
 
 export const useFormStore = defineStore('form', () => {
   const questions = ref([])
@@ -25,11 +44,28 @@ export const useFormStore = defineStore('form', () => {
       return
     }
 
+    const answersToSave = JSON.parse(JSON.stringify(answers.value))
+    for (const qIndex in answersToSave) {
+      if (answersToSave[qIndex] && Array.isArray(answersToSave[qIndex])) {
+        for (const ans of answersToSave[qIndex]) {
+          if (ans.media) {
+            ans.media = ans.media.map(m => {
+              const { url, base64, ...rest } = m
+              return {
+                ...rest,
+                relativePath: m.relativePath || `./${m.attention ? 'X' : 'photos'}/${m.name}`
+              }
+            })
+          }
+        }
+      }
+    }
+
     const draft = {
       reportName: reportName.value,
       questions: questions.value,
-      answers: answers.value,
-      media: media.value,
+      answers: answersToSave,
+      mediaCounter: mediaCounter,
       timestamp: Date.now()
     }
 
@@ -47,16 +83,40 @@ export const useFormStore = defineStore('form', () => {
     questions.value = q
     answers.value = {}
     q.forEach((_, index) => {
-      answers.value[index] = [{ text: '', attention: false, media: [] }]
+      answers.value[index] = [{ text: '', attention: false, media: [], _empty: true }]
     })
     debouncedSave()
+  }
+
+  const addQuestion = (index = -1) => {
+    const newIndex = index === -1 ? questions.value.length : index + 1
+    const newQuestion = {
+      id: Date.now(),
+      text: '',
+      type: 'text'
+    }
+    questions.value.splice(newIndex, 0, newQuestion)
+    
+    const newAnswers = {}
+    Object.keys(answers.value).forEach(key => {
+      const k = parseInt(key)
+      if (k >= newIndex) {
+        newAnswers[String(k + 1)] = answers.value[key]
+      } else {
+        newAnswers[key] = answers.value[key]
+      }
+    })
+    newAnswers[String(newIndex)] = [{ text: '', attention: false, media: [], _empty: true }]
+    answers.value = newAnswers
+    debouncedSave()
+    return newIndex
   }
 
   const addAnswer = (questionIndex) => {
     if (!answers.value[questionIndex]) {
       answers.value[questionIndex] = []
     }
-    answers.value[questionIndex].push({ text: '', attention: false, media: [] })
+    answers.value[questionIndex].push({ text: '', attention: false, media: [], _empty: true })
     debouncedSave()
   }
 
@@ -70,24 +130,95 @@ export const useFormStore = defineStore('form', () => {
   const setAnswerText = (questionIndex, answerIndex, text) => {
     if (answers.value[questionIndex] && answers.value[questionIndex][answerIndex]) {
       answers.value[questionIndex][answerIndex].text = text
+      answers.value[questionIndex][answerIndex]._empty = false
       debouncedSave()
     }
   }
 
-  const setAnswerAttention = (questionIndex, answerIndex, attention) => {
+  const setAnswerAttention = async (questionIndex, answerIndex, attention) => {
     if (answers.value[questionIndex] && answers.value[questionIndex][answerIndex]) {
       answers.value[questionIndex][answerIndex].attention = attention
+      
+      if (folderHandle.value && answers.value[questionIndex][answerIndex].media?.length > 0) {
+        const fromFolderName = !attention ? 'X' : 'photos'
+        const toFolderName = attention ? 'X' : 'photos'
+        
+        try {
+          const fromSubFolder = await folderHandle.value.getDirectoryHandle(fromFolderName, { create: true })
+          const toSubFolder = await folderHandle.value.getDirectoryHandle(toFolderName, { create: true })
+          
+          for (const media of answers.value[questionIndex][answerIndex].media) {
+            try {
+              const fileHandle = await fromSubFolder.getFileHandle(media.name)
+              const file = await fileHandle.getFile()
+              
+              const toFileHandle = await toSubFolder.getFileHandle(media.name, { create: true })
+              const writable = await toFileHandle.createWritable()
+              await writable.write(file)
+              await writable.close()
+              
+              await fromSubFolder.removeEntry(media.name)
+              
+              if (!media.url || media.url.startsWith('blob:')) {
+                media.url = URL.createObjectURL(file)
+              }
+            } catch (e) {
+              console.error('Error moving media file:', media.name, e)
+            }
+          }
+        } catch (e) {
+          console.error('Error accessing folders to move media:', e)
+        }
+      }
+      
       debouncedSave()
     }
   }
 
-  const addMedia = (questionIndex, answerIndex, file) => {
+  let mediaCounter = { photos: 1, X: 1 }
+
+  const addMedia = async (questionIndex, answerIndex, file, isAttention = false) => {
     if (answers.value[questionIndex] && answers.value[questionIndex][answerIndex]) {
       if (!answers.value[questionIndex][answerIndex].media) {
         answers.value[questionIndex][answerIndex].media = []
       }
-      const renamedFile = renameMediaFile(file, questionIndex, answerIndex, answers.value[questionIndex][answerIndex].media.length)
-      answers.value[questionIndex][answerIndex].media.push(renamedFile)
+
+      // Mark answer as not empty
+      answers.value[questionIndex][answerIndex]._empty = false
+
+      const folderName = isAttention ? 'X' : 'photos'
+      const counter = isAttention ? mediaCounter.X : mediaCounter.photos
+      const ext = file.name.split('.').pop()
+      const fileName = `${String(counter).padStart(3, '0')}.${ext}`
+
+      let mediaItem = {
+        name: fileName,
+        type: file.type,
+        attention: isAttention,
+        originalName: file.name
+      }
+
+      if (folderHandle.value) {
+        try {
+          const subFolderHandle = await folderHandle.value.getDirectoryHandle(folderName, { create: true })
+          const fileHandle = await subFolderHandle.getFileHandle(fileName, { create: true })
+          const writable = await fileHandle.createWritable()
+          await writable.write(file)
+          await writable.close()
+        } catch (e) {
+          console.error('Error saving media to folder:', e)
+        }
+      }
+
+      mediaItem.url = URL.createObjectURL(file)
+      mediaItem.base64 = await fileToBase64(file)
+      answers.value[questionIndex][answerIndex].media.push(mediaItem)
+
+      if (isAttention) {
+        mediaCounter.X++
+      } else {
+        mediaCounter.photos++
+      }
       debouncedSave()
     }
   }
@@ -107,8 +238,20 @@ export const useFormStore = defineStore('form', () => {
     }
   }
 
-  const removeMedia = (questionIndex, answerIndex, mediaIndex) => {
+  const removeMedia = async (questionIndex, answerIndex, mediaIndex) => {
     if (answers.value[questionIndex] && answers.value[questionIndex][answerIndex] && answers.value[questionIndex][answerIndex].media) {
+      const media = answers.value[questionIndex][answerIndex].media[mediaIndex]
+      
+      if (folderHandle.value && media) {
+        try {
+          const folderName = media.attention ? 'X' : 'photos'
+          const subFolder = await folderHandle.value.getDirectoryHandle(folderName, { create: true })
+          await subFolder.removeEntry(media.name)
+        } catch (e) {
+          console.error('Error deleting media file:', media.name, e)
+        }
+      }
+      
       answers.value[questionIndex][answerIndex].media.splice(mediaIndex, 1)
       debouncedSave()
     }
@@ -125,15 +268,33 @@ export const useFormStore = defineStore('form', () => {
 
   const setFolderHandle = (handle) => {
     folderHandle.value = handle
+    const lastFolderKey = `lastMediaFolder_${reportName.value}`
+    localStorage.setItem(lastFolderKey, handle.name || 'selected')
     debouncedSave()
   }
 
   const saveDraft = async () => {
+    const answersToSave = JSON.parse(JSON.stringify(answers.value))
+    for (const qIndex in answersToSave) {
+      if (answersToSave[qIndex] && Array.isArray(answersToSave[qIndex])) {
+        for (const ans of answersToSave[qIndex]) {
+          if (ans.media) {
+            ans.media = ans.media.map(m => {
+              const { url, base64, ...rest } = m
+              return {
+                ...rest,
+                relativePath: m.relativePath || `./${m.attention ? 'X' : 'photos'}/${m.name}`
+              }
+            })
+          }
+        }
+      }
+    }
     const draft = {
       reportName: reportName.value,
       questions: questions.value,
-      answers: answers.value,
-      media: media.value,
+      answers: answersToSave,
+      mediaCounter: mediaCounter,
       timestamp: Date.now()
     }
 
@@ -168,11 +329,12 @@ export const useFormStore = defineStore('form', () => {
   const loadDraftFromFile = async (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const draft = JSON.parse(e.target.result)
           reportName.value = draft.reportName || file.name.replace('.json', '')
           questions.value = draft.questions || []
+          mediaCounter = draft.mediaCounter || { photos: 1, X: 1 }
           
           if (draft.attention) {
             const migratedAnswers = {}
@@ -186,17 +348,19 @@ export const useFormStore = defineStore('form', () => {
             })
             answers.value = migratedAnswers
           } else if (draft.answers) {
-            const migratedAnswers = {}
-            Object.keys(draft.answers).forEach(key => {
-              if (draft.answers[key] && draft.answers[key].length > 0) {
-                migratedAnswers[key] = draft.answers[key].map(ans => ({
-                  text: ans.text || '',
-                  attention: ans.attention || false,
-                  media: ans.media || []
-                }))
+            const loadedAnswers = JSON.parse(JSON.stringify(draft.answers))
+            for (const qIndex in loadedAnswers) {
+              if (loadedAnswers[qIndex] && Array.isArray(loadedAnswers[qIndex])) {
+                for (const ans of loadedAnswers[qIndex]) {
+                  const isEmpty = ans.text?.trim() === '' && ans.media?.length === 0
+                  ans._empty = ans._empty ?? isEmpty
+                }
+                if (loadedAnswers[qIndex].length === 0) {
+                  loadedAnswers[qIndex] = [{ text: '', attention: false, media: [], _empty: true }]
+                }
               }
-            })
-            answers.value = migratedAnswers
+            }
+            answers.value = loadedAnswers
           }
           
           resolve(draft)
@@ -207,6 +371,48 @@ export const useFormStore = defineStore('form', () => {
       reader.onerror = reject
       reader.readAsText(file)
     })
+  }
+
+  const loadMediaFromFolder = async (selectedFolderHandle = null) => {
+    try {
+      console.log('[loadMediaFromFolder] Starting...')
+      console.log('[loadMediaFromFolder] answers.value:', answers.value)
+      
+      const handle = selectedFolderHandle || await window.showDirectoryPicker({ mode: 'readwrite' })
+      console.log('[loadMediaFromFolder] handle:', handle)
+      
+      setFolderHandle(handle)
+      
+      let loadedCount = 0
+      for (const qIndex in answers.value) {
+        if (answers.value[qIndex] && Array.isArray(answers.value[qIndex])) {
+          for (const ans of answers.value[qIndex]) {
+            if (ans.media && ans.media.length > 0) {
+              console.log('[loadMediaFromFolder] Found media in qIndex:', qIndex, 'ans.media:', ans.media)
+              for (const m of ans.media) {
+                try {
+                  const folderName = m.attention ? 'X' : 'photos'
+                  console.log('[loadMediaFromFolder] Loading media:', m.name, 'from folder:', folderName)
+                  const subFolderHandle = await handle.getDirectoryHandle(folderName, { create: true })
+                  const fileHandle = await subFolderHandle.getFileHandle(m.name)
+                  const file = await fileHandle.getFile()
+                  m.url = URL.createObjectURL(file)
+                  m.base64 = await fileToBase64(file)
+                  m.relativePath = m.relativePath || `./${folderName}/${m.name}`
+                  console.log('[loadMediaFromFolder] Loaded successfully:', m.name, 'url:', m.url)
+                  loadedCount++
+                } catch (err) {
+                  console.error('[loadMediaFromFolder] Error loading media:', m.name, err)
+                }
+              }
+            }
+          }
+        }
+      }
+      console.log('[loadMediaFromFolder] Done. Loaded:', loadedCount, 'files')
+    } catch (e) {
+      console.error('[loadMediaFromFolder] Error:', e)
+    }
   }
 
   const clearForm = () => {
@@ -226,6 +432,7 @@ export const useFormStore = defineStore('form', () => {
     reportFolder,
     folderHandle,
     setQuestions,
+    addQuestion,
     addAnswer,
     removeAnswer,
     setAnswerText,
@@ -238,6 +445,8 @@ export const useFormStore = defineStore('form', () => {
     saveDraft,
     loadDraft,
     loadDraftFromFile,
-    clearForm
+    loadMediaFromFolder,
+    clearForm,
+    debouncedSave
   }
 })
