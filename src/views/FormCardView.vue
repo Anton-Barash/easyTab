@@ -245,42 +245,44 @@ import { exportReport } from '../utils/zipExporter'
 }
 
 .sidebar {
-  width: 320px;
-  background: #f8fafc;
+  width: 280px;
+  background: #e2e8f0;
   border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
 }
 
 .sidebar-header {
-  padding: 20px;
+  padding: 8px;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .sidebar-header button {
   align-self: flex-start;
+  font-size: 11px;
+  padding: 4px 8px;
 }
 
 .sidebar-header h3 {
   color: #1e293b;
-  font-size: 18px;
+  font-size: 13px;
 }
 
 .questions-sidebar {
   flex: 1;
   overflow-y: auto;
-  padding: 10px;
+  padding: 4px;
 }
 
 .question-nav-item {
   display: flex;
   align-items: center;
-  padding: 12px 15px;
-  margin-bottom: 5px;
-  border-radius: 8px;
+  padding: 6px 8px;
+  margin-bottom: 2px;
+  border-radius: 6px;
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -296,14 +298,14 @@ import { exportReport } from '../utils/zipExporter'
 .question-nav-number {
   font-weight: 700;
   color: #2563eb;
-  font-size: 16px;
-  margin-right: 10px;
-  min-width: 24px;
+  font-size: 12px;
+  margin-right: 6px;
+  min-width: 20px;
 }
 
 .question-nav-text {
   flex: 1;
-  font-size: 14px;
+  font-size: 12px;
   color: #475569;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -312,33 +314,33 @@ import { exportReport } from '../utils/zipExporter'
 
 .question-nav-stats {
   display: flex;
-  gap: 5px;
-  font-size: 12px;
+  gap: 4px;
+  font-size: 11px;
 }
 
 .answers-count {
   background: #e2e8f0;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 1px 4px;
+  border-radius: 6px;
   color: #64748b;
 }
 
 .attention-count {
   background: #fef3c7;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 1px 4px;
+  border-radius: 6px;
   color: #d97706;
   font-weight: 600;
 }
 
 .add-question-sidebar-btn {
-  padding: 12px;
-  margin: 10px;
-  border: 2px dashed #94a3b8;
-  border-radius: 8px;
+  padding: 6px;
+  margin: 4px;
+  border: 1px dashed #94a3b8;
+  border-radius: 6px;
   background: transparent;
   color: #475569;
-  font-size: 14px;
+  font-size: 12px;
   cursor: pointer;
 }
 
@@ -350,7 +352,7 @@ import { exportReport } from '../utils/zipExporter'
 .main-content {
   flex: 1;
   overflow-y: auto;
-  padding: 30px;
+  padding: 8px;
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
@@ -360,17 +362,17 @@ import { exportReport } from '../utils/zipExporter'
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 8px;
 }
 
 .nav-btn {
-  padding: 10px 20px;
+  padding: 4px 8px;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: white;
   color: #475569;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .nav-btn:hover:not(:disabled) {
@@ -383,42 +385,42 @@ import { exportReport } from '../utils/zipExporter'
 }
 
 .question-counter {
-  font-size: 14px;
+  font-size: 12px;
   color: #64748b;
 }
 
 .question-card-container {
   background: white;
-  border-radius: 12px;
+  border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  padding: 30px;
+  padding: 8px;
 }
 
 .question-card {
-  margin-bottom: 20px;
+  margin-bottom: 8px;
 }
 
 .question-header {
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 8px;
   align-items: flex-start;
 }
 
 .question-number {
   font-weight: 700;
   color: #2563eb;
-  font-size: 24px;
+  font-size: 14px;
 }
 
 .question-input {
   flex: 1;
-  font-size: 20px;
+  font-size: 13px;
   font-weight: 600;
   color: #1e293b;
-  padding: 10px 15px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
+  padding: 4px 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
   background: white;
 }
 
@@ -428,14 +430,14 @@ import { exportReport } from '../utils/zipExporter'
 }
 
 .answers-container {
-  margin-top: 20px;
+  margin-top: 8px;
 }
 
 .answer-item {
-  margin-bottom: 15px;
-  padding: 15px;
+  margin-bottom: 6px;
+  padding: 6px;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 6px;
   background: #fafafa;
 }
 
@@ -455,52 +457,53 @@ import { exportReport } from '../utils/zipExporter'
 
 .answer-row {
   display: flex;
-  gap: 12px;
+  gap: 6px;
   align-items: flex-start;
 }
 
 .answer-row .input-field {
   flex: 1;
-  padding: 12px;
+  padding: 4px 6px;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.3;
   resize: vertical;
 }
 
 .answer-controls {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: flex-start;
 }
 
 .attention-label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
   font-weight: 700;
   color: #d97706;
-  font-size: 16px;
-  padding: 10px;
+  font-size: 12px;
+  padding: 4px 6px;
   background: #fef3c7;
   border-radius: 6px;
 }
 
 .attention-label input {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   cursor: pointer;
 }
 
 .remove-btn {
-  width: 36px;
-  height: 36px;
+  width: 24px;
+  height: 24px;
   border: none;
   border-radius: 6px;
   background: #fee2e2;
   color: #dc2626;
-  font-size: 20px;
+  font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -513,14 +516,13 @@ import { exportReport } from '../utils/zipExporter'
 
 .add-answer-btn {
   width: 100%;
-  padding: 12px;
-  border: 2px dashed #94a3b8;
-  border-radius: 8px;
+  padding: 6px;
+  border: 1px dashed #94a3b8;
+  border-radius: 6px;
   background: white;
   color: #475569;
-  font-size: 14px;
+  font-size: 12px;
   cursor: pointer;
-  font-weight: 500;
 }
 
 .add-answer-btn:hover {
@@ -530,28 +532,28 @@ import { exportReport } from '../utils/zipExporter'
 
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: 20px 8px;
 }
 
 .empty-state p {
-  font-size: 18px;
+  font-size: 13px;
   color: #64748b;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
 }
 
 .bottom-controls {
   display: flex;
-  gap: 15px;
+  gap: 8px;
   justify-content: flex-end;
-  margin-top: 30px;
+  margin-top: 8px;
 }
 
 .bottom-controls .btn-secondary,
 .bottom-controls .btn-primary {
-  padding: 12px 24px;
-  font-size: 14px;
+  padding: 6px 12px;
+  font-size: 12px;
   font-weight: 500;
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
 }
 
@@ -579,8 +581,8 @@ import { exportReport } from '../utils/zipExporter'
   background: #f0f9ff;
   color: #2563eb;
   border-color: #2563eb;
-  font-size: 12px;
-  padding: 6px 12px;
+  font-size: 11px;
+  padding: 4px 8px;
 }
 
 .view-toggle:hover {

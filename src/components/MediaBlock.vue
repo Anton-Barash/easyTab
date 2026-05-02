@@ -57,24 +57,24 @@ const confirmRemove = (index) => {
 
 <style scoped>
 .media-block {
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .media-buttons {
   display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 4px;
+  margin-bottom: 6px;
 }
 
 .media-buttons button {
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 4px 8px;
+  font-size: 11px;
 }
 
 .media-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 4px;
 }
 
 .media-item {
@@ -90,7 +90,7 @@ const confirmRemove = (index) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f8fafc;
+  background-color: #e2e8f0;
 }
 
 .media-preview.clickable {
@@ -114,10 +114,10 @@ const confirmRemove = (index) => {
   background: rgba(239, 68, 68, 0.9);
   border: none;
   color: white;
-  font-size: 14px;
+  font-size: 11px;
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 2px 4px;
+  border-radius: 6px;
   line-height: 1;
 }
 </style>
