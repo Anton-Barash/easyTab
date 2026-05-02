@@ -1,8 +1,4 @@
-import * as XLSX from 'xlsx'
-
-export const generateHTMLReport = (questions, answers) => {
-  let imageIndex = 0;
-  let html = `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
@@ -46,61 +42,122 @@ export const generateHTMLReport = (questions, answers) => {
 <body>
   <div class="container">
     <h1>Report</h1>
-`;
 
-  questions.forEach((q, index) => {
-    const qIndex = String(index);
-    const questionAnswers = answers[qIndex] || [{ text: '', attention: false, media: [] }];
-
-    html += `
     <div class="question">
-      <div class="question-text">${index + 1}. ${q.text}</div>
+      <div class="question-text">1. Object Name</div>
       <table class="answers-table">
         <tbody>
-`;
 
-    questionAnswers.forEach((ans, ansIndex) => {
-      const isAttention = ans.attention;
-      const answerMedia = ans.media || [];
-
-      const hasMedia = answerMedia.length > 0;
-      html += `
-          <tr class="${isAttention ? 'attention' : ''}">
-            <td class="num-col">${ansIndex + 1}</td>
-            <td class="attention-col">${isAttention ? '!' : ''}</td>
-            <td class="answer-text">${ans.text || '-'}</td>
+          <tr class="attention">
+            <td class="num-col">1</td>
+            <td class="attention-col">!</td>
+            <td class="answer-text">123</td>
             <td>
-              <div class="${hasMedia ? 'media-cell' : 'media-cell-empty'}">
-`;
-
-      if (hasMedia) {
-        answerMedia.forEach(m => {
-          const folder = isAttention ? 'X' : 'photos';
-          if (m.type && m.type.startsWith('image')) {
-            html += `<div class="media-item"><img src="./${folder}/${m.name}" alt="${m.name}" onclick="openLightbox(this.src, ${imageIndex})" /></div>`;
-            imageIndex++;
-          } else if (m.type && m.type.startsWith('video')) {
-            html += `<div class="media-item"><video controls><source src="./${folder}/${m.name}" type="${m.type}" /></video></div>`;
-          }
-        });
-      }
-
-      html += `
+              <div class="media-cell">
+                <div class="media-item"><img src="./X/001.JPG" alt="001.JPG" onclick="openLightbox(this.src, 0)" /></div>
               </div>
             </td>
           </tr>
-`;
-    });
 
-    html += `
+          <tr class="">
+            <td class="num-col">2</td>
+            <td class="attention-col"></td>
+            <td class="answer-text">123333</td>
+            <td>
+              <div class="media-cell">
+                <div class="media-item"><img src="./photos/001.jpg" alt="001.jpg" onclick="openLightbox(this.src, 1)" /></div><div class="media-item"><img src="./photos/002.jpg" alt="002.jpg" onclick="openLightbox(this.src, 2)" /></div><div class="media-item"><img src="./photos/003.jpg" alt="003.jpg" onclick="openLightbox(this.src, 3)" /></div><div class="media-item"><video controls><source src="./photos/004.mp4" type="video/mp4" /></video></div><div class="media-item"><video controls><source src="./photos/005.mp4" type="video/mp4" /></video></div><div class="media-item"><img src="./photos/006.jpg" alt="006.jpg" onclick="openLightbox(this.src, 4)" /></div><div class="media-item"><img src="./photos/007.JPG" alt="007.JPG" onclick="openLightbox(this.src, 5)" /></div><div class="media-item"><img src="./photos/008.jpg" alt="008.jpg" onclick="openLightbox(this.src, 6)" /></div>
+              </div>
+            </td>
+          </tr>
+
+          <tr class="">
+            <td class="num-col">3</td>
+            <td class="attention-col"></td>
+            <td class="answer-text">-</td>
+            <td>
+              <div class="media-cell">
+                <div class="media-item"><img src="./photos/009.svg" alt="009.svg" onclick="openLightbox(this.src, 7)" /></div>
+              </div>
+            </td>
+          </tr>
+
         </tbody>
       </table>
     </div>
-`;
-  });
 
-  html += `
-    <div class="date">Created: ${new Date().toLocaleString()}</div>
+    <div class="question">
+      <div class="question-text">2. Inspection Date</div>
+      <table class="answers-table">
+        <tbody>
+
+          <tr class="">
+            <td class="num-col">1</td>
+            <td class="attention-col"></td>
+            <td class="answer-text">-</td>
+            <td>
+              <div class="media-cell-empty"></div>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="question">
+      <div class="question-text">3. Equipment Status</div>
+      <table class="answers-table">
+        <tbody>
+
+          <tr class="">
+            <td class="num-col">1</td>
+            <td class="attention-col"></td>
+            <td class="answer-text">-</td>
+            <td>
+              <div class="media-cell-empty"></div>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="question">
+      <div class="question-text">4. Comments</div>
+      <table class="answers-table">
+        <tbody>
+
+          <tr class="">
+            <td class="num-col">1</td>
+            <td class="attention-col"></td>
+            <td class="answer-text">-</td>
+            <td>
+              <div class="media-cell-empty"></div>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="question">
+      <div class="question-text">5. Photo/Video Materials</div>
+      <table class="answers-table">
+        <tbody>
+
+          <tr class="">
+            <td class="num-col">1</td>
+            <td class="attention-col"></td>
+            <td class="answer-text">-</td>
+            <td>
+              <div class="media-cell-empty"></div>
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+
+    <div class="date">Created: 5/2/2026, 1:50:53 PM</div>
   </div>
   <div class="lightbox" id="lightbox">
     <button class="lightbox-close" onclick="closeLightbox()">×</button>
@@ -162,7 +219,7 @@ export const generateHTMLReport = (questions, answers) => {
     function resetZoom() { scale = 1; panX = 0; panY = 0; applyTransform(); }
 
     function applyTransform() {
-      document.getElementById('lightbox-img').style.transform = \`translate(\${panX}px, \${panY}px) scale(\${scale})\`;
+      document.getElementById('lightbox-img').style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
     }
 
     const container = document.getElementById('lightbox-container');
@@ -187,131 +244,3 @@ export const generateHTMLReport = (questions, answers) => {
   </script>
 </body>
 </html>
-`;
-
-  return html;
-};
-
-export const generateExcelFile = (questions, answers) => {
-  const data = [];
-
-  questions.forEach((q, index) => {
-    const qIndex = String(index);
-    const qAnswers = answers[qIndex] || [{ text: '', attention: false, media: [] }];
-
-    qAnswers.forEach((ans, ansIndex) => {
-      const answerText = ans.text || '';
-      const attentionMark = ans.attention ? '!' : '';
-      const fullAnswer = attentionMark ? `! ${answerText}` : answerText;
-      const mediaNames = (ans.media || []).map(m => {
-        const folder = ans.attention ? 'X' : 'photos';
-        return `${folder}/${m.name}`;
-      }).join('; ');
-
-      data.push({
-        'Question': ansIndex === 0 ? q.text : '',
-        'Answer': fullAnswer,
-        'Media': mediaNames
-      });
-    });
-  });
-
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Report');
-
-  return XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-};
-
-const getFileExtension = (fileName) => {
-  const parts = fileName.split('.');
-  return parts.length > 1 ? `.${parts[parts.length - 1]}` : '.jpg';
-};
-
-const saveFileToFolder = async (folderHandle, fileName, content) => {
-  const fileHandle = await folderHandle.getFileHandle(fileName, { create: true });
-  const writable = await fileHandle.createWritable();
-  await writable.write(content);
-  await writable.close();
-};
-
-const saveMediaFile = async (folderHandle, mediaFile, number, folderName) => {
-  try {
-    const subFolderHandle = await folderHandle.getDirectoryHandle(folderName, { create: true });
-    const ext = getFileExtension(mediaFile.originalName || mediaFile.name);
-    const fileName = `${String(number).padStart(3, '0')}${ext}`;
-
-    if (mediaFile.base64) {
-      const base64Data = mediaFile.base64.split(',')[1];
-      const binary = atob(base64Data);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-
-      await saveFileToFolder(subFolderHandle, fileName, bytes);
-    } else if (mediaFile.file) {
-      await saveFileToFolder(subFolderHandle, fileName, mediaFile.file);
-    }
-
-    return fileName;
-  } catch (e) {
-    console.error('Error saving media file:', e);
-    return null;
-  }
-};
-
-export const exportReport = async (questions, answers, fileName = 'report') => {
-  try {
-    const folderHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-
-    let photoCounter = 1;
-    let xCounter = 1;
-    const updatedAnswers = JSON.parse(JSON.stringify(answers));
-
-    for (const [qIndex, questionAnswers] of Object.entries(updatedAnswers)) {
-      if (questionAnswers && questionAnswers.length > 0) {
-        for (const ans of questionAnswers) {
-          const answerMedia = ans.media || [];
-          for (let mIndex = 0; mIndex < answerMedia.length; mIndex++) {
-            const folderName = ans.attention ? 'X' : 'photos';
-            const counter = ans.attention ? xCounter : photoCounter;
-            const savedName = await saveMediaFile(folderHandle, answerMedia[mIndex], counter, folderName);
-
-            if (savedName) {
-              answerMedia[mIndex].name = savedName;
-              if (ans.attention) {
-                xCounter++;
-              } else {
-                photoCounter++;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    const html = generateHTMLReport(questions, updatedAnswers);
-    await saveFileToFolder(folderHandle, 'report.html', html);
-
-    const excelData = generateExcelFile(questions, updatedAnswers);
-    await saveFileToFolder(folderHandle, 'report.xlsx', excelData);
-
-    const draft = {
-      reportName: fileName,
-      questions: questions,
-      answers: updatedAnswers,
-      timestamp: Date.now()
-    };
-    await saveFileToFolder(folderHandle, `${fileName}.json`, JSON.stringify(draft, null, 2));
-
-    alert('Report exported successfully!');
-    return true;
-  } catch (e) {
-    if (e.name !== 'AbortError') {
-      console.error('Error exporting report:', e);
-      alert('Error exporting report. Please try again.');
-    }
-    return false;
-  }
-};
