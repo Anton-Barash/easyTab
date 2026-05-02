@@ -25,6 +25,7 @@
               class="input-field"
               rows="2"
               placeholder="Введите ответ..."
+              ref="textareaRefs"
             ></textarea>
             <div class="answer-controls">
               <label class="attention-label">
@@ -36,7 +37,6 @@
                 !
               </label>
               <button
-                v-if="answers.length > 1"
                 class="remove-btn"
                 @click="onRemoveAnswer(ansIndex)"
                 title="Удалить ответ"
@@ -61,7 +61,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import MediaBlock from './MediaBlock.vue'
 
 const props = defineProps({
@@ -73,12 +73,25 @@ const props = defineProps({
 const emit = defineEmits(['update:answers', 'add-answer', 'remove-answer', 'add-media', 'remove-media', 'update:question-text'])
 
 const answers = ref([...props.initialAnswers])
+const textareaRefs = ref([])
+
+const adjustTextareaHeight = (textarea) => {
+  if (textarea) {
+    textarea.style.height = 'auto'
+    textarea.style.height = textarea.scrollHeight + 'px'
+  }
+}
 
 const onQuestionTextChange = (text) => {
   emit('update:question-text', text)
 }
 
 const onAnswerChange = (ansIndex, text) => {
+  nextTick(() => {
+    if (textareaRefs.value[ansIndex]) {
+      adjustTextareaHeight(textareaRefs.value[ansIndex])
+    }
+  })
   emit('update:answers', answers.value)
 }
 
@@ -104,7 +117,24 @@ const onRemoveMedia = (ansIndex, mediaIndex) => {
 
 watch(() => props.initialAnswers, (newVal) => {
   answers.value = [...newVal]
+  nextTick(() => {
+    textareaRefs.value.forEach((textarea) => {
+      if (textarea) {
+        adjustTextareaHeight(textarea)
+      }
+    })
+  })
 }, { deep: true })
+
+watch(() => answers.value.length, () => {
+  nextTick(() => {
+    textareaRefs.value.forEach((textarea) => {
+      if (textarea) {
+        adjustTextareaHeight(textarea)
+      }
+    })
+  })
+})
 </script>
 
 <style scoped>
@@ -152,11 +182,12 @@ watch(() => props.initialAnswers, (newVal) => {
 }
 
 .answer-item {
-  margin-bottom: 12px;
-  padding: 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: #ffffff;
+  width: 100%;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 8px 14px;
+  box-sizing: border-box;
+  background: #FFFFFF;
 }
 
 .answer-item.attention-item {
@@ -164,30 +195,67 @@ watch(() => props.initialAnswers, (newVal) => {
   background: #fffbeb;
 }
 
-.answer-item.empty-answer {
-  background: #f8fafc;
-  opacity: 0.7;
-}
-
-.answer-item.empty-answer .input-field {
-  cursor: not-allowed;
-}
-
 .answer-row {
   display: flex;
   gap: 10px;
   align-items: flex-start;
+  justify-content: space-between;
   margin-bottom: 12px;
 }
 
 .answer-row .input-field {
   flex: 1;
+  max-width: 550px;
+  border: none;
+  outline: none;
+  background: transparent;
+  resize: none;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  font-size: 15px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 450;
+  color: #333333;
+  min-height: 24px;
+  box-sizing: border-box;
+}
+
+.answer-row .input-field::placeholder {
+  color: #8E95A1;
+  font-weight: 400;
+}
+
+.input-bottom {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.attach-button {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  background: #F5F7FA;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  color: #555;
+  transition: 0.2s;
+}
+
+.attach-button:hover {
+  background: #E2E8F0;
 }
 
 .answer-controls {
   display: flex;
-  gap: 8px;
-  align-items: center;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
 }
 
 .attention-label {

@@ -76,6 +76,7 @@
                   class="input-field"
                   rows="3"
                   placeholder="Введите ответ..."
+                  ref="textareaRefs"
                 ></textarea>
                 <div class="answer-controls">
                   <label class="attention-label">
@@ -87,9 +88,8 @@
                     !
                   </label>
                   <button
-                    v-if="formStore.answers[currentQuestionIndex.value]?.length > 1"
                     class="remove-btn"
-                    @click="removeAnswer(ansIndex)"
+                    @click="confirmRemoveAnswer(ansIndex)"
                     title="Удалить ответ"
                   >
                     ×
@@ -125,7 +125,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFormStore } from '../stores/formStore'
 import MediaBlock from '../components/MediaBlock.vue'
@@ -134,6 +134,14 @@ const router = useRouter()
 const formStore = useFormStore()
 
 const currentQuestionIndex = ref(0)
+const textareaRefs = ref([])
+
+const adjustTextareaHeight = (textarea) => {
+  if (textarea) {
+    textarea.style.height = 'auto'
+    textarea.style.height = textarea.scrollHeight + 'px'
+  }
+}
 
 onMounted(() => {
   if (formStore.questions.length === 0) {
@@ -190,11 +198,22 @@ const addAnswer = () => {
   formStore.addAnswer(currentQuestionIndex.value)
 }
 
+const confirmRemoveAnswer = (ansIndex) => {
+  if (confirm('Удалить ответ?')) {
+    formStore.removeAnswer(currentQuestionIndex.value, ansIndex)
+  }
+}
+
 const removeAnswer = (ansIndex) => {
   formStore.removeAnswer(currentQuestionIndex.value, ansIndex)
 }
 
 const updateAnswerText = (ansIndex, text) => {
+  nextTick(() => {
+    if (textareaRefs.value[ansIndex]) {
+      adjustTextareaHeight(textareaRefs.value[ansIndex])
+    }
+  })
   formStore.setAnswerText(currentQuestionIndex.value, ansIndex, text)
 }
 
@@ -434,11 +453,12 @@ import { exportReport } from '../utils/zipExporter'
 }
 
 .answer-item {
-  margin-bottom: 6px;
-  padding: 6px;
-  border: 1px solid #e2e8f0;
+  width: 100%;
+  border: 1px solid #E2E8F0;
   border-radius: 6px;
-  background: #fafafa;
+  padding: 8px 14px;
+  box-sizing: border-box;
+  background: #FFFFFF;
 }
 
 .answer-item.attention-item {
@@ -446,35 +466,41 @@ import { exportReport } from '../utils/zipExporter'
   background: #fffbeb;
 }
 
-.answer-item.empty-answer {
-  background: #f0f0f0;
-  opacity: 0.7;
-}
-
-.answer-item.empty-answer .input-field {
-  cursor: not-allowed;
-}
-
 .answer-row {
   display: flex;
-  gap: 6px;
+  gap: 10px;
   align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
 }
 
 .answer-row .input-field {
   flex: 1;
-  padding: 4px 6px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 13px;
-  line-height: 1.3;
-  resize: vertical;
+  max-width: 550px;
+  border: none;
+  outline: none;
+  background: transparent;
+  resize: none;
+  overflow-y: auto;
+  padding: 0;
+  margin: 0;
+  font-size: 15px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 450;
+  color: #333333;
+  min-height: 24px;
+}
+
+.answer-row .input-field::placeholder {
+  color: #8E95A1;
+  font-weight: 400;
 }
 
 .answer-controls {
   display: flex;
-  gap: 4px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
 }
 
 .attention-label {

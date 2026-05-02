@@ -47,32 +47,40 @@ const formStore = useFormStore()
 
 const openExisting = async () => {
   try {
-    const [fileHandle] = await window.showOpenFilePicker({
-      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
-    })
-    const file = await fileHandle.getFile()
+    const folderHandle = await window.showDirectoryPicker({ mode: 'readwrite' })
+    
+    let jsonFile = null
+    let jsonCount = 0
+    let foundFileName = ''
+    
+    for await (const entry of folderHandle.values()) {
+      if (entry.kind === 'file' && entry.name.endsWith('.json')) {
+        jsonCount++
+        jsonFile = entry
+        foundFileName = entry.name
+      }
+    }
+    
+    if (jsonCount === 0) {
+      alert('В папке нет JSON файлов. Выберите папку с файлом отчета.')
+      return
+    }
+    
+    if (jsonCount > 1) {
+      alert(`В папке найдено ${jsonCount} JSON файлов. Должен быть только один файл.\nУдалите лишние или выберите другую папку.`)
+      return
+    }
+    
+    const file = await jsonFile.getFile()
     console.log('[openExisting] File:', file.name)
-
+    
     await formStore.loadDraftFromFile(file)
     console.log('[openExisting] Draft loaded')
-
-    // Check if we already have a folder handle set
-    if (!formStore.folderHandle) {
-      try {
-        console.log('[openExisting] Requesting folder picker...')
-        const folderHandle = await window.showDirectoryPicker({ mode: 'readwrite' })
-        console.log('[openExisting] Folder handle:', folderHandle)
-        formStore.setFolderHandle(folderHandle)
-        console.log('[openExisting] Loading media...')
-        await formStore.loadMediaFromFolder(folderHandle)
-        console.log('[openExisting] Media loading complete')
-      } catch (e) {
-        console.log('[openExisting] Folder selection cancelled or failed:', e)
-      }
-    } else {
-      console.log('[openExisting] Using existing folder handle')
-      await formStore.loadMediaFromFolder(formStore.folderHandle)
-    }
+    
+    formStore.setFolderHandle(folderHandle)
+    console.log('[openExisting] Loading media...')
+    await formStore.loadMediaFromFolder(folderHandle)
+    console.log('[openExisting] Media loading complete')
 
     router.push('/fill')
   } catch (e) {
