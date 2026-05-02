@@ -30,14 +30,6 @@
           </div>
         </div>
       </div>
-
-      <input
-        ref="jsonFileInput"
-        type="file"
-        accept=".json"
-        style="display: none"
-        @change="handleJsonFile"
-      />
     </div>
   </div>
 </template>
@@ -47,12 +39,11 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFormStore } from '../stores/formStore'
 import { useReportStore } from '../stores/reportStore'
+import { exportReport } from '../utils/zipExporter'
 
 const router = useRouter()
 const formStore = useFormStore()
 const reportStore = useReportStore()
-
-const jsonFileInput = ref(null)
 
 const reports = ref([])
 
@@ -64,29 +55,130 @@ const goBack = () => {
   router.push('/')
 }
 
-const openJsonFile = () => {
-  jsonFileInput.value?.click()
-}
+const openJsonFile = async () => {
+  try {
+    if ('showOpenFilePicker' in window) {
+      const [fileHandle] = await window.showOpenFilePicker({
+        types: [{
+          description: 'JSON Files',
+          accept: { 'application/json': ['.json'] }
+        }],
+        multiple: false
+      })
+      
+      const file = await fileHandle.getFile()
+      const fileContent = await file.text()
+      const draft = JSON.parse(fileContent)
+      
+      const fileName = file.name
+      const reportName = fileName.endsWith('.json') ? fileName.slice(0, -5) : fileName
+      
+      formStore.reportName = reportName
+      formStore.questions = draft.questions || []
+      
+      let answersData = draft.answers
+      let attentionData = draft.attention
+      let mediaData = draft.media
 
-const handleJsonFile = async (e) => {
-  if (e.target.files && e.target.files[0]) {
-    try {
-      await formStore.loadDraftFromFile(e.target.files[0])
+      if (attentionData) {
+        const migratedAnswers = {}
+        Object.keys(answersData || {}).forEach(key => {
+          const questionMedia = mediaData && mediaData[key] ? mediaData[key] : []
+          migratedAnswers[key] = [{
+            text: answersData[key] || '',
+            attention: attentionData[key] || false,
+            media: questionMedia
+          }]
+        })
+        formStore.answers = migratedAnswers
+      } else if (answersData) {
+        formStore.answers = answersData
+      }
+      
+      try {
+        const folderHandle = await fileHandle.getParent()
+        formStore.folderHandle = folderHandle
+        formStore.reportFolder = folderHandle.name
+      } catch (e) {
+        console.error('Could not get parent folder:', e)
+        const handle = await window.showDirectoryPicker({ mode: 'readwrite' })
+        formStore.folderHandle = handle
+        formStore.reportFolder = handle.name
+      }
+      
       router.push('/fill')
-    } catch (error) {
-      alert('Error: ' + error.message)
+    } else {
+      alert('File System Access API not supported in this browser.')
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      console.error('Error opening JSON file:', e)
+      alert('Error: ' + e.message)
     }
   }
 }
 
-const continueReport = (report) => {
-  formStore.setQuestions(report.questions)
-  formStore.reportName = report.name
-  router.push('/fill')
+const continueReport = async (report) => {
+  try {
+    if ('showOpenFilePicker' in window) {
+      const [fileHandle] = await window.showOpenFilePicker({
+        types: [{
+          description: 'JSON Files',
+          accept: { 'application/json': ['.json'] }
+        }],
+        multiple: false
+      })
+      
+      const file = await fileHandle.getFile()
+      const fileContent = await file.text()
+      const draft = JSON.parse(fileContent)
+      
+      formStore.reportName = report.name
+      formStore.questions = draft.questions || []
+      
+      let answersData = draft.answers
+      let attentionData = draft.attention
+      let mediaData = draft.media
+
+      if (attentionData) {
+        const migratedAnswers = {}
+        Object.keys(answersData || {}).forEach(key => {
+          const questionMedia = mediaData && mediaData[key] ? mediaData[key] : []
+          migratedAnswers[key] = [{
+            text: answersData[key] || '',
+            attention: attentionData[key] || false,
+            media: questionMedia
+          }]
+        })
+        formStore.answers = migratedAnswers
+      } else if (answersData) {
+        formStore.answers = answersData
+      }
+      
+      try {
+        const folderHandle = await fileHandle.getParent()
+        formStore.folderHandle = folderHandle
+        formStore.reportFolder = folderHandle.name
+      } catch (e) {
+        console.error('Could not get parent folder:', e)
+        const handle = await window.showDirectoryPicker({ mode: 'readwrite' })
+        formStore.folderHandle = handle
+        formStore.reportFolder = handle.name
+      }
+      
+      router.push('/fill')
+    } else {
+      alert('File System Access API not supported in this browser.')
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') {
+      console.error('Error opening report:', e)
+      alert('Error: ' + e.message)
+    }
+  }
 }
 
 const reExportReport = async (report) => {
-  const { exportToZip } = await import('../utils/zipExporter')
   let answersData = report.answers
   let attentionData = report.attention
   let mediaData = report.media
@@ -116,12 +208,7 @@ const reExportReport = async (report) => {
     answersData = migratedAnswers
   }
 
-  await exportToZip(
-    report.questions,
-    answersData,
-    report.name
-  )
-  alert('Report exported!')
+  await exportReport(report.questions, answersData, report.name)
 }
 
 const deleteReport = (id) => {

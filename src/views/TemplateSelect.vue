@@ -74,6 +74,23 @@
           </div>
         </div>
       </div>
+
+      <div v-if="showExistingFileModal" class="modal-overlay">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h4>File Already Exists</h4>
+          </div>
+          <div class="modal-body">
+            <p>A report with name "{{ reportName.trim() }}" already exists in this folder.</p>
+            <p>What would you like to do?</p>
+          </div>
+          <div class="modal-footer">
+            <button class="btn-secondary" @click="openExisting">Open Existing</button>
+            <button class="btn-danger" @click="overwriteExisting">Overwrite</button>
+            <button class="btn-secondary" @click="showExistingFileModal = false">Cancel</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -93,6 +110,7 @@ const reportName = ref('')
 const folderName = ref('Downloads')
 const folderHandle = ref(null)
 const showHelp = ref(false)
+const showExistingFileModal = ref(false)
 
 const canContinue = computed(() => {
   return reportName.value.trim() && selectedTemplate.value
@@ -145,14 +163,115 @@ const useDefaultTemplate = () => {
   selectedTemplate.value = defaultTemplate
 }
 
-const useTemplate = () => {
-  if (selectedTemplate.value && reportName.value.trim()) {
+const checkFileExists = async (folder, fileName) => {
+  try {
+    await folder.getFileHandle(fileName)
+    return true
+  } catch (e) {
+    if (e.name === 'NotFoundError') {
+      return false
+    }
+    throw e
+  }
+}
+
+const createEmptyJson = async (folder, fileName, questions) => {
+  const emptyDraft = {
+    reportName: fileName.slice(0, -5),
+    questions: questions,
+    answers: {},
+    media: {},
+    timestamp: Date.now()
+  }
+  
+  questions.forEach((_, index) => {
+    emptyDraft.answers[index] = [{ text: '', attention: false, media: [] }]
+  })
+  
+  const fileHandle = await folder.getFileHandle(fileName, { create: true })
+  const writable = await fileHandle.createWritable()
+  await writable.write(JSON.stringify(emptyDraft, null, 2))
+  await writable.close()
+}
+
+const useTemplate = async () => {
+  if (!selectedTemplate.value || !reportName.value.trim()) return
+  
+  let currentFolderHandle = folderHandle.value
+  if (!currentFolderHandle) {
+    try {
+      currentFolderHandle = await window.showDirectoryPicker({ mode: 'readwrite' })
+      folderHandle.value = currentFolderHandle
+      folderName.value = currentFolderHandle.name
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        console.error(e)
+      }
+      return
+    }
+  }
+  
+  const fileName = reportName.value.trim() + '.json'
+  const exists = await checkFileExists(currentFolderHandle, fileName)
+  
+  if (exists) {
+    showExistingFileModal.value = true
+  } else {
+    await createEmptyJson(currentFolderHandle, fileName, selectedTemplate.value)
     formStore.reportName = reportName.value.trim()
     formStore.reportFolder = folderName.value
     formStore.folderHandle = folderHandle.value
     formStore.setQuestions(selectedTemplate.value)
     router.push('/fill')
   }
+}
+
+const openExisting = async () => {
+  showExistingFileModal.value = false
+  
+  const fileName = reportName.value.trim() + '.json'
+  const fileHandle = await folderHandle.value.getFileHandle(fileName)
+  const file = await fileHandle.getFile()
+  const fileContent = await file.text()
+  const draft = JSON.parse(fileContent)
+  
+  formStore.reportName = reportName.value.trim()
+  formStore.reportFolder = folderName.value
+  formStore.folderHandle = folderHandle.value
+  formStore.questions = draft.questions || []
+  
+  let answersData = draft.answers
+  let attentionData = draft.attention
+  let mediaData = draft.media
+
+  if (attentionData) {
+    const migratedAnswers = {}
+    Object.keys(answersData || {}).forEach(key => {
+      const questionMedia = mediaData && mediaData[key] ? mediaData[key] : []
+      migratedAnswers[key] = [{
+        text: answersData[key] || '',
+        attention: attentionData[key] || false,
+        media: questionMedia
+      }]
+    })
+    formStore.answers = migratedAnswers
+  } else if (answersData) {
+    formStore.answers = answersData
+  }
+  
+  router.push('/fill')
+}
+
+const overwriteExisting = async () => {
+  showExistingFileModal.value = false
+  
+  const fileName = reportName.value.trim() + '.json'
+  await createEmptyJson(folderHandle.value, fileName, selectedTemplate.value)
+  formStore.reportName = reportName.value.trim()
+  formStore.reportFolder = folderName.value
+  formStore.folderHandle = folderHandle.value
+  formStore.setQuestions(selectedTemplate.value)
+  router.push('/fill')
 }
 </script>
 
@@ -368,6 +487,15 @@ const useTemplate = () => {
 
 .modal-body strong {
   color: #2563eb;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 15px 20px;
+  justify-content: flex-end;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
 }
 
 .selected-preview {

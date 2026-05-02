@@ -9,6 +9,39 @@ export const useFormStore = defineStore('form', () => {
   const reportName = ref('')
   const reportFolder = ref('')
   const folderHandle = ref(null)
+  let saveTimeout = null
+
+  const debouncedSave = () => {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout)
+    }
+    saveTimeout = setTimeout(() => {
+      autoSaveDraft()
+    }, 500)
+  }
+
+  const autoSaveDraft = async () => {
+    if (!folderHandle.value || !reportName.value) {
+      return
+    }
+
+    const draft = {
+      reportName: reportName.value,
+      questions: questions.value,
+      answers: answers.value,
+      media: media.value,
+      timestamp: Date.now()
+    }
+
+    try {
+      const fileHandle = await folderHandle.value.getFileHandle(`${reportName.value}.json`, { create: true })
+      const writable = await fileHandle.createWritable()
+      await writable.write(JSON.stringify(draft, null, 2))
+      await writable.close()
+    } catch (e) {
+      console.error('Error saving to folder:', e)
+    }
+  }
 
   const setQuestions = (q) => {
     questions.value = q
@@ -16,6 +49,7 @@ export const useFormStore = defineStore('form', () => {
     q.forEach((_, index) => {
       answers.value[index] = [{ text: '', attention: false, media: [] }]
     })
+    debouncedSave()
   }
 
   const addAnswer = (questionIndex) => {
@@ -23,23 +57,27 @@ export const useFormStore = defineStore('form', () => {
       answers.value[questionIndex] = []
     }
     answers.value[questionIndex].push({ text: '', attention: false, media: [] })
+    debouncedSave()
   }
 
   const removeAnswer = (questionIndex, answerIndex) => {
     if (answers.value[questionIndex] && answers.value[questionIndex].length > 1) {
       answers.value[questionIndex].splice(answerIndex, 1)
+      debouncedSave()
     }
   }
 
   const setAnswerText = (questionIndex, answerIndex, text) => {
     if (answers.value[questionIndex] && answers.value[questionIndex][answerIndex]) {
       answers.value[questionIndex][answerIndex].text = text
+      debouncedSave()
     }
   }
 
   const setAnswerAttention = (questionIndex, answerIndex, attention) => {
     if (answers.value[questionIndex] && answers.value[questionIndex][answerIndex]) {
       answers.value[questionIndex][answerIndex].attention = attention
+      debouncedSave()
     }
   }
 
@@ -50,6 +88,7 @@ export const useFormStore = defineStore('form', () => {
       }
       const renamedFile = renameMediaFile(file, questionIndex, answerIndex, answers.value[questionIndex][answerIndex].media.length)
       answers.value[questionIndex][answerIndex].media.push(renamedFile)
+      debouncedSave()
     }
   }
 
@@ -71,11 +110,13 @@ export const useFormStore = defineStore('form', () => {
   const removeMedia = (questionIndex, answerIndex, mediaIndex) => {
     if (answers.value[questionIndex] && answers.value[questionIndex][answerIndex] && answers.value[questionIndex][answerIndex].media) {
       answers.value[questionIndex][answerIndex].media.splice(mediaIndex, 1)
+      debouncedSave()
     }
   }
 
   const setReportName = (name) => {
     reportName.value = name
+    debouncedSave()
   }
 
   const setReportFolder = (folder) => {
@@ -84,6 +125,7 @@ export const useFormStore = defineStore('form', () => {
 
   const setFolderHandle = (handle) => {
     folderHandle.value = handle
+    debouncedSave()
   }
 
   const saveDraft = async () => {

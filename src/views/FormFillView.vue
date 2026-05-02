@@ -21,7 +21,7 @@
         />
       </div>
 
-      <NavControl @back="goBack" @save-draft="saveDraft" @export="exportReport" />
+      <NavControl @back="goBack" @save-draft="saveDraft" @export="exportReportFunc" />
     </div>
   </div>
 </template>
@@ -30,7 +30,7 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFormStore } from '../stores/formStore'
-import { exportToZip } from '../utils/zipExporter'
+import { exportReport } from '../utils/zipExporter'
 import QuestionCard from '../components/QuestionCard.vue'
 import NavControl from '../components/NavControl.vue'
 
@@ -64,19 +64,13 @@ const updateAnswers = (questionIndex, answersList) => {
   })
 }
 
-const exportReport = async () => {
+const exportReportFunc = async () => {
   const fileName = formStore.reportName || 'report'
-
-  await exportToZip(
-    formStore.questions,
-    formStore.answers,
-    fileName,
-    formStore.folderHandle
-  )
-
-  alert('Report exported!')
-  formStore.clearForm()
-  router.push('/reports')
+  const success = await exportReport(formStore.questions, formStore.answers, fileName)
+  if (success) {
+    formStore.clearForm()
+    router.push('/reports')
+  }
 }
 </script>
 
