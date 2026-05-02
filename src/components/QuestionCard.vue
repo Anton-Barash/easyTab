@@ -61,7 +61,7 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, watchEffect } from 'vue'
 import MediaBlock from './MediaBlock.vue'
 
 const props = defineProps({
@@ -115,6 +115,18 @@ const onRemoveMedia = (ansIndex, mediaIndex) => {
   emit('remove-media', ansIndex, mediaIndex)
 }
 
+watchEffect(() => {
+  nextTick(() => {
+    const textareas = document.querySelectorAll('.question-card .input-field')
+    textareas.forEach((textarea) => {
+      if (textarea) {
+        textarea.style.height = 'auto'
+        textarea.style.height = textarea.scrollHeight + 'px'
+      }
+    })
+  })
+})
+
 watch(() => props.initialAnswers, (newVal) => {
   answers.value = [...newVal]
   nextTick(() => {
@@ -151,24 +163,32 @@ watch(() => answers.value.length, () => {
 
 .question-number {
   font-weight: 700;
-  color: #2563eb;
-  font-size: 20px;
+  color: #1e293b;
+  font-size: 14px;
+  min-width: 24px;
 }
 
 .question-input {
   flex: 1;
-  font-size: 18px;
+  font-size: 14px;
+  font-weight: 600;
   color: #1e293b;
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
+  padding: 6px 8px;
+  border: 1px solid transparent;
   border-radius: 6px;
-  background: #ffffff;
+  background: transparent;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .question-input:focus {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.1);
+}
+
+.question-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
 }
 
 .question-text {

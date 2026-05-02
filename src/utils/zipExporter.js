@@ -230,11 +230,16 @@ const getFileExtension = (fileName) => {
   return parts.length > 1 ? `.${parts[parts.length - 1]}` : '.jpg';
 };
 
+let fileOperationQueue = Promise.resolve();
+
 const saveFileToFolder = async (folderHandle, fileName, content) => {
-  const fileHandle = await folderHandle.getFileHandle(fileName, { create: true });
-  const writable = await fileHandle.createWritable();
-  await writable.write(content);
-  await writable.close();
+  fileOperationQueue = fileOperationQueue.then(async () => {
+    const fileHandle = await folderHandle.getFileHandle(fileName, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(content);
+    await writable.close();
+  });
+  return fileOperationQueue;
 };
 
 const saveMediaFile = async (folderHandle, mediaFile, number, folderName) => {
@@ -252,8 +257,14 @@ const saveMediaFile = async (folderHandle, mediaFile, number, folderName) => {
       }
       await saveFileToFolder(subFolderHandle, fileName, bytes);
     } else if (mediaFile.url && mediaFile.url.startsWith('blob:')) {
-      // If we have a blob URL, we can't use it for saving directly
-      // Just use the name without saving (file should already be in folder)
+      try {
+        const response = await fetch(mediaFile.url);
+        const blob = await response.blob();
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        await saveFileToFolder(subFolderHandle, fileName, bytes);
+      } catch (e) {
+        console.warn('Could not fetch blob URL, skipping file:', e);
+      }
     }
 
     return fileName;

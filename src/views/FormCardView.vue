@@ -125,7 +125,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFormStore } from '../stores/formStore'
 import MediaBlock from '../components/MediaBlock.vue'
@@ -216,6 +216,17 @@ const updateAnswerText = (ansIndex, text) => {
   })
   formStore.setAnswerText(currentQuestionIndex.value, ansIndex, text)
 }
+
+watchEffect(() => {
+  nextTick(() => {
+    const textareas = document.querySelectorAll('.question-card-container .input-field')
+    textareas.forEach((textarea) => {
+      if (textarea) {
+        adjustTextareaHeight(textarea)
+      }
+    })
+  })
+})
 
 const updateAnswerAttention = (ansIndex, attention) => {
   formStore.setAnswerAttention(currentQuestionIndex.value, ansIndex, attention)
@@ -428,24 +439,32 @@ import { exportReport } from '../utils/zipExporter'
 
 .question-number {
   font-weight: 700;
-  color: #2563eb;
+  color: #1e293b;
   font-size: 14px;
+  min-width: 24px;
 }
 
 .question-input {
   flex: 1;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: #1e293b;
-  padding: 4px 6px;
-  border: 1px solid #e2e8f0;
+  padding: 6px 8px;
+  border: 1px solid transparent;
   border-radius: 6px;
-  background: white;
+  background: transparent;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .question-input:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.1);
+}
+
+.question-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
 }
 
 .answers-container {
