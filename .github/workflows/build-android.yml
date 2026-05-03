@@ -36,26 +36,25 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Install Capacitor
-        run: npm install @capacitor/cli @capacitor/android
-
-      - name: Initialize Capacitor
-        run: npx cap init easyTab com.easytab.app --web-dir=dist
-
-      - name: Add Android platform
-        run: npx cap add android
-
       - name: Sync to Android
         run: npx cap copy android
+
+      - name: Generate Gradle wrapper (if missing)
+        run: |
+          cd android
+          if [ ! -f gradlew ]; then
+            echo "Gradle wrapper missing, generating..."
+            gradle wrapper
+          fi
 
       - name: Build APK
         run: |
           cd android
-          chmod +x gradlew
+          chmod +x gradlew || true
           ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
-          path: android/app/build/outputs/apk/release/*.apk
+          name: app-debug
+          path: android/app/build/outputs/apk/debug/*.apk
