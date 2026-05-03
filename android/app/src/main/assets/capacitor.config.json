@@ -1,0 +1,11 @@
+{
+	"appId": "com.easytab.app",
+	"appName": "easyTab",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https"
+	},
+	"plugins": {
+		"Filesystem": {}
+	}
+}
