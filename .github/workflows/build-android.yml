@@ -40,7 +40,10 @@ jobs:
         run: npm install @capacitor/cli @capacitor/android
 
       - name: Initialize Capacitor
-        run: npx cap init easyTab com.easytab.app --web-dir=dist --skip-build
+        run: npx cap init easyTab com.easytab.app --web-dir=dist
+
+      - name: Add Android platform
+        run: npx cap add android
 
       - name: Sync to Android
         run: npx cap copy android
@@ -49,7 +52,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --warning-mode=all
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
