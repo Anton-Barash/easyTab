@@ -36,6 +36,9 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
+      - name: Install Capacitor
+        run: npm install @capacitor/cli @capacitor/android
+
       - name: Sync to Android
         run: npx cap copy android
 
