@@ -42,18 +42,10 @@ jobs:
       - name: Sync to Android
         run: npx cap copy android
 
-      - name: Generate Gradle wrapper (if missing)
-        run: |
-          cd android
-          if [ ! -f gradlew ]; then
-            echo "Gradle wrapper missing, generating..."
-            gradle wrapper
-          fi
-
       - name: Build APK
         run: |
           cd android
-          chmod +x gradlew || true
+          chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
